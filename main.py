@@ -1,3 +1,9 @@
+'''
+serverless-Python-p2p-chat
+Translated from Russian to English by FoodieFridays
+Forked from justcomex's p2p-chat
+'''
+
 import os
 import socket
 import sys
@@ -5,112 +11,112 @@ from threading import Thread
 import time
 
 
-# функция, отвечающая за получение и обработку UDP-пакетов от пиров
+# function responsible for receiving and processing UDP packets from peers
 def GetUdpChatMessage():
     global name
     global broadcastSocket
     global current_online
     while True:
-        recv_message = broadcastSocket.recv(1024)              # получаем 1024 байта от пира
-        recv_string_message = str(recv_message.decode('utf-8'))# переводим сообщение в строку
+        recv_message = broadcastSocket.recv(1024)              # we get 1024 bytes from the peer
+        recv_string_message = str(recv_message.decode('utf-8'))# translate (decode) the message into a string
         if recv_string_message.find(':') != -1:                
-        # если в сообщении есть двоеточие, то есть сообщения вида: 'имя пира: сообщение'
-            print('\r%s\n' % recv_string_message, end='')      # выводим в консоль сообщение от пира
+        # if the message contains a colon, that is, messages of the form: 'peer name: message'
+            print('\r%s\n' % recv_string_message, end='')      # print a message from the peer to the console
         elif recv_string_message.find('!@#') != -1 and recv_string_message.find(':') == -1 and recv_string_message[3:] in current_online:
-        # если в сообщении находим служебную последовательность '!@#', и это не сообщение чата от любого пира, и имя этого пира содержится в списке текущих имён
-            current_online.remove(recv_string_message[3:])     # удаляем имя пира из списка с именами
-            print('>> Сейчас в сети: ' + str(len(current_online)))  # выводим текущее количество пиров в сети 
+        # if in the message we find the service sequence '!@#', and this is not a chat message from any peer, and the name of this peer is contained in the list of current names
+            current_online.remove(recv_string_message[3:])     # remove the peer name from the list with names
+            print('>> Peers online now: ' + str(len(current_online)))  # display the current number of peers in the network
         elif not(recv_string_message in current_online) and recv_string_message.find(':') == -1:
-        # если имя нового пира не содержится в списке пиров в сети, и это не сообщение чата от любого пира
-            current_online.append(recv_string_message)         # добавляем в список имя нового пира
-            print('>> Сейчас в сети: ' + str(len(current_online)))  # выводим текущее количество пиров в сети
+        # if the name of the new peer is not contained in the list of peers in the network, and this is not a chat message from any peer
+            current_online.append(recv_string_message)         # add the name of the new peer to the list
+            print('>> Peers online now: ' + str(len(current_online)))  # display the current number of peers in the network
 
-# функция, отвечающая за отправку сообщений всем пирам
+# function responsible for sending messages to all peers
 def SendBroadcastMessageForChat():
     global name
     global sendSocket
-    sendSocket.setblocking(False)           # не блокируем сокет, с которого происходит отправка широковещательных сообщений
-    while True:                             # бесконечный цикл
-        data = input()                      # ввод сообщения пиром
-        if data == 'Выход()':               
-        # если кто-то из пиров захотел выйти из программы
-            close_message = '!@#' + name    # формируем сообщение, регламентирующее закрытие
-            sendSocket.sendto(close_message.encode('utf-8'), ('255.255.255.255', 8080)) # отправляем сообщение всем пирам в подсети
-            #time.sleep(2)                  # таймаут выход из программы
-            os._exit(1)                     # выходим из программы
-        elif data != '' and data != 'Выход()':  
-        # если сообщение не пустое и нет сообщения-признака выхода
-            send_message = name + ': ' + data   # формируем сообщение в удобочитаемом формате
-            sendSocket.sendto(send_message.encode('utf-8'), ('255.255.255.255', 8080))  # отправляем сообщение всем пирам в подсети
+    sendSocket.setblocking(False)           # do not block the socket from which broadcast messages are sent
+    while True:                             # endless loop
+        data = input()                      # used to store user input
+        if data == 'Exit()':               
+        # if one of the peers wants to exit the program
+            close_message = '!@#' + name    # we form the closing message 
+            sendSocket.sendto(close_message.encode('utf-8'), ('255.255.255.255', 8080)) # send a message to all peers in the subnet
+            #time.sleep(2)                  # program timeout - not currently activated
+            os._exit(1)                     # exit the program
+        elif data != '' and data != 'Exit()':  
+        # if the message is not empty and there is no exit message
+            send_message = name + ': ' + data   # we put the message into a nice format
+            sendSocket.sendto(send_message.encode('utf-8'), ('255.255.255.255', 8080))  # send a message to all peers in the subnet
         else:
-        # если пользователь не ввёл сообщение (попытался отправить пустое сообщение)
-            print('Напишите сначала сообщение!')        
+        # if the user did not enter a message (tried to send an empty message)
+            print('You must write a message first!')        
 
-# функция, отвечающая за отправку имён пиров каждую секунду, пока конкретный пир в сети (реализация отправки статуса в сети)
+# function responsible for sending peer names every second, while a particular peer is in the network (implementation of sending status on the network)
 def SendBroadcastOnlineStatus():
     global name
     global sendSocket
-    sendSocket.setblocking(False)           # не блокируем сокет, с которого происходит отправка широковещательных соообщений
-    while True:                             # бесконечный цикл
-        time.sleep(1)                       # таймаут отправки статуса, что пир онлайн
-        sendSocket.sendto(name.encode('utf-8'), ('255.255.255.255', 8080))  # отправка имени пира, пока он в сети
+    sendSocket.setblocking(False)           # do not block the socket from which broadcast messages are sent
+    while True:                             # endless loop
+        time.sleep(1)                       # only updates every second
+        sendSocket.sendto(name.encode('utf-8'), ('255.255.255.255', 8080))  # sending the peer name while it is online
 
-# главная функция
+# main function
 def main():
     global broadcastSocket
-    # сокет для реализации получения сообщений от пиров
-    broadcastSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)      # инициализация сокета для работы с IPv4-адресами, используя протокол UDP
-    broadcastSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)   # присваиваем параметр SO_REUSEADDR на уровне библиотеки, SO_REUSEADDR - указывает на то, что сразу несколько приложений могут слушать сокет
-    broadcastSocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)   # присваиваем параметр SO_BROADCAST на уровне библиотеки, SO_BROADCAST - указывает на то, что пакеты будут широковещательные
-    broadcastSocket.bind(('0.0.0.0', 8080))                                 # биндимся к адресу '0.0.0.0', чтобы прослушивать все интерфейсы
+    # socket to implement receiving messages from peers
+    broadcastSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)      # initializing a socket for working with IPv4 addresses using UDP
+    broadcastSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)   # assign the parameter SO_REUSEADDR at the library level, SO_REUSEADDR - indicates that several applications can listen to the socket at once
+    broadcastSocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)   # assign the parameter SO_BROADCAST at the library level, SO_BROADCAST - indicates that the packets will be broadcast
+    broadcastSocket.bind(('0.0.0.0', 8080))                                 # bind to the address '0.0.0.0' to listen to all interfaces
     global sendSocket
-    # сокет для реализации отправки сообщений пирам
-    sendSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)           # инициализация сокета для работы с IPv4-адресами, используя протокол UDP
-    sendSocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST,1)         # присваиваем параметр SO_BROADCAST на уровне библиотеки, SO_BROADCAST - указывает на то, что пакеты будут широковещательные
+    # socket to implement sending messages to peers
+    sendSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)           # initializing a socket for working with IPv4 addresses using UDP
+    sendSocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST,1)         # assign the parameter SO_BROADCAST at the library level, SO_BROADCAST - indicates that the packets will be broadcast
 
-    # делаем красивое приветствие
-    print('*************************************************')
-    print('*  Добро пожаловать в наш P2P-чат!              *')
-    print('*  Чтобы выйти, отправьте сообщение: Выход()    *')
-    print('*  После ввода имени сразу можно писать в чат.  *')
-    print('*  Хорошего времяпрепровождения!                *')
-    print('*************************************************')
+    # startup greeting
+    print('*********************************************************')
+    print('*  Welcome to our Python P2P chat!                      *')
+    print('*  To exit, send the message: Exit()    		*')
+    print('*  After entering your name, you can immediately chat.  *')
+    print('*  Have fun!				                *')
+    print('*********************************************************')
 
 
     global name
-    name = ''                                                   # имя пользователя
-    # точный, но убогий в реализации ввод имени пользователя
+    name = ''                                                   # username
+    # poor username input
     while True:                                                 
         if not name:
-        # если имя пустое
-            name = input('Ваше имя: ')
+        # if the name is empty
+            name = input('Your name: ')
             if not name:
-            # если имя пустое
-                print('Введите непустое имя!')
+            # if the name is empty
+                print('Enter a non-empty name!')
             else:
-            # если имя введено, то выйти из цикла
+            # if name is entered correctly exit loop
                 break
-    print('*************************************************')  # красивый разграничитель между именем и чатом
+    print('*********************************************************')  # delimiter between name and chat
 
     global recvThread
-    recvThread = Thread(target=GetUdpChatMessage)               # поток для получения сообщений от пиров
+    recvThread = Thread(target=GetUdpChatMessage)               # thread for receiving messages from peers
 
     global sendMsgThread
-    sendMsgThread = Thread(target=SendBroadcastMessageForChat)  # поток для отправки сообщений от пиров
+    sendMsgThread = Thread(target=SendBroadcastMessageForChat)  # thread for sending messages to peers
 
     global current_online
-    current_online = []                                         # список имя пиров, которые находятся в сети
+    current_online = []                                         # list of peers that are online
 
     global sendOnlineThread
-    sendOnlineThread = Thread(target=SendBroadcastOnlineStatus) # поток для отправки статусов, что пир в сети
+    sendOnlineThread = Thread(target=SendBroadcastOnlineStatus) # thread to send connection status
 
-    recvThread.start()                                          # запуск потока для получения сообщений от пиров
-    sendMsgThread.start()                                       # запуск потока для отправки сообщений всем пирам
-    sendOnlineThread.start()                                    # запуск поток для отправки статусов, что пир в сети
+    recvThread.start()                                          # start a thread to receive messages from peers
+    sendMsgThread.start()                                       # start a thread to send messages to all peers
+    sendOnlineThread.start()                                    # start a thread to send connection status
 
-    recvThread.join()                                           # блокируем поток, в котором осуществляется вызов до тех пор, пока recvThread не будет завершён
-    sendMsgThread.join()                                        # блокируем поток, в котором осуществляется вызов до тех пор, пока sendMsgThread не будет завершён
-    sendOnlineThread.join()                                     # блокируем поток, в котором осуществляется вызов до тех пор, пока sendOnlineThread не будет завершён
+    recvThread.join()                                           # block the thread in which the call is made until recvThread is completed
+    sendMsgThread.join()                                        # block the thread in which the call is made until sendMsgThread is completed
+    sendOnlineThread.join()                                     # block the thread in which the call is made until sendOnlineThread is completed
 
 if __name__ == '__main__':
     main()
